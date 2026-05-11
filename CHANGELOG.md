@@ -4,11 +4,26 @@ All notable changes to Termux-TUI will be documented here.
 
 ---
 
-## [2.0.0] — Current
+## [2.5.0] - current
+
+### Added
+- 4 apps in apps tab
+
+### Fixed
+- theme crash in various sub parts of the app
+- sudden crashes are fixed
+- real diagnosis and system initialisation in splash screen
+
+### Changed
+- app interfece changed to `grid` from `horizontal`
+- Termux-TUI logo
+
+
+## [2.0.0]
 
 ### Added
 - Splash screen on launch with animated intro
-- Command Palette — press `Ctrl+P` to search and jump to any feature
+- Command Palette. press `Ctrl+P` to search and jump to any feature
 - 3 main themes × 19 system themes = 57 total theme combinations
 - `termux-app-store` added to Packages tab (offline-first TUI package manager)
 - `fmt_size` helper for human-readable file sizes

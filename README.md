@@ -41,10 +41,11 @@ No root. No X11. No display server. Just Python.
 - Scrollable grid — add as many commands as you want without overflow
 - Speedtest — runs speedtest-cli and displays Download/Upload/Ping/Server as parsed key-value pairs
 ### 🎮 Apps Tab
-- 3 apps added.
-- Music player
-- File manager
-- Dialer
+- 4 built-in apps: music player, file manager, dialer and ytmp3
+- Music player — play  and enjoy downloaded music
+- File manager — browse storage, open files, and navigate directories inside Termux
+- Dialer — quick dial pad with call log and contact lookup
+- YTmp3 — search, play, download youtube songs with playlist support
 
 ### 📝 Also
 - 3 main Theme

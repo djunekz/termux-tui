@@ -1,5 +1,8 @@
 import os, re, subprocess, json
-from .constants import BASIC_COMMANDS, MUSIC_EXTENSIONS, DEFAULT_MUSIC_DIRS, CONFIG_PATH
+from .constants import (
+    BASIC_COMMANDS, MUSIC_EXTENSIONS, DEFAULT_MUSIC_DIRS, CONFIG_PATH,
+    YT_CONFIG_PATH, DEFAULT_YT_DOWNLOAD_DIR, TEMP_CURR, TEMP_NEXT, TEMP_PREV
+)
 
 def strip_ansi(text):
     return re.sub(r'\x1b\[[0-9;]*m', '', text)
@@ -105,7 +108,11 @@ def load_config():
         with open(CONFIG_PATH) as f:
             return json.load(f)
     except Exception:
-        return {"theme": "jarvis", "music_dirs": DEFAULT_MUSIC_DIRS, "music_mode": "sequential", "music_stop_on_close": False}
+        return {"theme": "jarvis", 
+            "music_dirs": DEFAULT_MUSIC_DIRS, 
+            "music_mode": "sequential", 
+            "music_stop_on_close": False
+            }
 
 
 def save_config(cfg):
@@ -214,3 +221,119 @@ def match_contacts(typed, contacts):
         if len(matches) >= 5:
             break
     return matches
+
+
+#  YouTube Music Functions 
+
+def load_yt_config():
+    """Load YouTube music configuration from file."""
+    try:
+        with open(YT_CONFIG_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {
+            "playlists": {},
+            "download_dir": DEFAULT_YT_DOWNLOAD_DIR,
+        }
+
+
+def save_yt_config(cfg):
+    """Save YouTube music configuration to file."""
+    try:
+        with open(YT_CONFIG_PATH, 'w') as f:
+            json.dump(cfg, f, indent=2)
+    except Exception:
+        pass
+
+
+def yt_search(query, limit=10, offset=0):
+    """Search YouTube using yt-dlp, return list of track dicts."""
+    search_query = f"ytsearch{limit + offset}:{query}"
+    try:
+        r = subprocess.run([
+            'yt-dlp', '--flat-playlist', '-j',
+            '--no-warnings', '--quiet',
+            search_query
+        ], capture_output=True, text=True, timeout=30)
+
+        results = []
+        for line in r.stdout.strip().splitlines():
+            try:
+                data = json.loads(line)
+                results.append({
+                    'id':       data.get('id', ''),
+                    'title':    data.get('title', 'Unknown'),
+                    'duration': data.get('duration_string', '--:--'),
+                    'uploader': data.get('uploader', ''),
+                    'url':      f"https://www.youtube.com/watch?v={data.get('id','')}",
+                })
+            except Exception:
+                continue
+        return results[offset:]
+    except Exception:
+        return []
+
+
+def yt_get_audio_url(yt_url):
+    """Get direct audio stream URL from YouTube (no download needed for streaming)."""
+    try:
+        r = subprocess.run([
+            'yt-dlp', '-f', 'bestaudio[ext=m4a]/bestaudio/best',
+            '--get-url', '--no-warnings', '--quiet', yt_url
+        ], capture_output=True, text=True, timeout=20)
+        return r.stdout.strip().splitlines()[0] if r.stdout.strip() else None
+    except Exception:
+        return None
+
+
+def yt_download_to_file(yt_url, output_path):
+    """Download best audio as mp3 to output_path. Returns True on success."""
+    try:
+        base = output_path.replace('.mp3', '')
+        r = subprocess.run([
+            'yt-dlp', '-f', 'bestaudio',
+            '-x', '--audio-format', 'mp3',
+            '--audio-quality', '0',
+            '--no-warnings', '--quiet',
+            '--force-overwrites',
+            '-o', base + '.%(ext)s',
+            yt_url
+        ], capture_output=True, text=True, timeout=120)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+def yt_fetch_radio(video_id, limit=25):
+    """
+    Fetch YouTube's algorithmic Radio mix for a video.
+    URL format https://youtube.com/watch?v=ID&list=RDID is YouTube's
+    own recommendation engine — same algo as Watch Next autoplay.
+    """
+    radio_url = f"https://www.youtube.com/watch?v={video_id}&list=RD{video_id}"
+    try:
+        r = subprocess.run([
+            'yt-dlp', '--flat-playlist', '-j',
+            '--no-warnings', '--quiet',
+            '--playlist-items', f'1:{limit}',
+            radio_url
+        ], capture_output=True, text=True, timeout=30)
+
+        results = []
+        for line in r.stdout.strip().splitlines():
+            try:
+                data   = json.loads(line)
+                vid_id = data.get('id', '')
+                if not vid_id or vid_id == video_id:
+                    continue   # skip seed track
+                results.append({
+                    'id':       vid_id,
+                    'title':    data.get('title', 'Unknown'),
+                    'duration': data.get('duration_string', '--:--'),
+                    'uploader': data.get('uploader', ''),
+                    'url':      f"https://www.youtube.com/watch?v={vid_id}",
+                })
+            except Exception:
+                continue
+        return results
+    except Exception:
+        return []

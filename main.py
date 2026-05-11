@@ -13,7 +13,7 @@ import subprocess, os, re, time, json
 from datetime import datetime
 from utils.constants import SPLASH, BASIC_COMMANDS, TOOLS, CAT_STYLE, SYSTEM_CMDS, ICONS, CSS_SPLASH_SCREEN, CSS_MAIN
 from utils.helpers import strip_ansi, get_recent_programs, get_battery, get_memory, run_speedtest, fmt_speed, flatten_json, fmt_size, load_config, save_config
-from utils.apps import MusicPlayerScreen, FileBrowserScreen, DialerScreen
+from utils.apps import MusicPlayerScreen, FileBrowserScreen, DialerScreen, YTmp3Screen
 
 # Loading Config
 config = load_config()
@@ -28,14 +28,17 @@ class SplashScreen(Screen):
         yield Static("[ PRESS ANY KEY TO SKIP ]", id="splash-sub")
 
     def on_mount(self):
-        self.auto_dismiss()
+        self.run_diagnosis()
 
-    def on_key(self):
-        self.dismiss()
+#    def on_key(self):
+#        self.dismiss()
         
     @work(thread=True)
-    def auto_dismiss(self):
-        time.sleep(2.5)
+    def run_diagnosis(self):
+        subprocess.run("yes|termux-setup-storage", shell=True)
+        subprocess.run("termux-call-log", shell=True)
+        subprocess.run("termux-contact-list", shell=True)
+        subprocess.run("termux-telephony-cellinfo", shell=True)
         self.app.call_from_thread(self.dismiss)
 
 
@@ -137,10 +140,10 @@ class TermuxDashboard(App):
             # APPS
             with TabPane("🎮 Apps"):
                 with Grid(id="apps-grid"):
-                    yield Button("📁 File Browser", id="app-files", classes="apps")
-                    yield Button("🎵 Music Player", id="app-music", classes="apps")
-                    yield Button("📞 Dialer", id="app-dialer", classes="apps")
-                        
+                    yield Button("📁 File Browser", id="app-files",  classes="apps")
+                    yield Button("🎵 Music Player", id="app-music",  classes="apps")
+                    yield Button("📞 Dialer",       id="app-dialer", classes="apps")
+                    yield Button("▶ YTmp3",         id="app-ytmp3",  classes="apps")
 
         yield Footer()
 
@@ -239,6 +242,9 @@ class TermuxDashboard(App):
             self.app.push_screen(FileBrowserScreen())
         elif bid == "app-dialer":
             self.app.push_screen(DialerScreen())
+        elif bid == "app-ytmp3":
+            self.app.push_screen(YTmp3Screen())
+
 
 
     # INPUT HANDLER
