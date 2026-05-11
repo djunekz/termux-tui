@@ -15,7 +15,9 @@
 
 A futuristic, Jarvis-style terminal dashboard for Termux — built entirely in Python with no display server, no XFCE, no GUI required.
 
+### Tabs
 ![Tabs](assets/ss1.jpg)
+### Apps
 ![Apps](assets/ss2.jpg)
 
 ## 🧠 What is this?
