@@ -333,7 +333,12 @@ class TermuxDashboard(App):
             if cfg['json'] and out:
                 try:
                     for key, val in flatten_json(json.loads(out)):
-                        w_kv(key, val)
+                        if key == "__SEP__":
+                            self.call_from_thread(
+                                rlog.write, Text("  " + "─" * 38, "dim #1a1a3e")
+                            )
+                        else:
+                            w_kv(key, val)
                     
                 except json.JSONDecodeError:
                     for line in out.splitlines(): w_raw(line)

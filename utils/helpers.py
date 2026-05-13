@@ -88,6 +88,9 @@ def fmt_size(n):
         n /= 1024
     return f"{n:.1f}TB"
 
+   
+SEPARATOR = ("__SEP__", "")
+
 def flatten_json(data, prefix=""):
     out = []
     if isinstance(data, dict):
@@ -96,8 +99,9 @@ def flatten_json(data, prefix=""):
             if isinstance(v, (dict, list)): out.extend(flatten_json(v, key))
             else: out.append((key, str(v)))
     elif isinstance(data, list):
-        prev_i = 0
         for i, item in enumerate(data):
+            if i > 0:
+                out.append(SEPARATOR)   # separator between items
             key = f"{prefix}[{i}]"
             if isinstance(item, (dict, list)): out.extend(flatten_json(item, key))
             else: out.append((key, str(item)))

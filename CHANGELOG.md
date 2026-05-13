@@ -4,7 +4,12 @@ All notable changes to Termux-TUI will be documented here.
 
 ---
 
-## [2.5.1] - current
+## [2.5.2] - current
+
+### changed
+- Visual Improvement: added a separator between the json output to make it better distinguishable
+
+## [2.5.1]
 
 ### Fixed
 - crash in dialer. 
