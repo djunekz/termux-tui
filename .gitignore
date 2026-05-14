@@ -1,5 +1,5 @@
 __pycache__
-.termux_tui_config.json
+.termux_tui*
 *.py[cod]
 *.pyo
 *.pyd
