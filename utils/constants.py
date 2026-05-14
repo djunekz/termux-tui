@@ -1,6 +1,5 @@
 import os 
-
-VERSION="2.6.1"
+from __init__ import *
 
 def _make_splash(version): 
 	inner_width=38 
