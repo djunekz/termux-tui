@@ -1,3 +1,11 @@
+def fmt_size(n):
+    for u in ['B', 'KB', 'MB', 'GB']:
+        if n < 1024:
+            return f"{n:.0f}{u}"
+        n /= 1024
+    return f"{n:.1f}TB"
+
+
 ICONS= {
 	'py': '🐍', 'sh': '📜', 'txt': '📄', 'md': '📝',
 	'jpg': '🖼️', 'png': '🖼️', 'gif': '🖼️',

@@ -13,7 +13,6 @@ from textual.widgets import Button, Input, Static
 
 from utils.helpers import load_config
 
-
 GITHUB_CSS = """
  #repo-root {
 	height: 100%;
@@ -536,7 +535,6 @@ class RepoExploreScreen(Screen):
         if self._active_time in TIME_WINDOWS:
             days = TIME_WINDOWS[self._active_time]
 
-            # "year" now means all time
             if days != 365:
                 since = (
                     datetime.now(timezone.utc)

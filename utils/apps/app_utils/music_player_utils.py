@@ -1,10 +1,11 @@
 import os, json, subprocess
 
 MUSIC_CONFIG_PATH = os.path.expanduser(".termux_tui_music_config.json")
-DEFAULT_MUSIC_DIRS=[ 
+DEFAULT_MUSIC_DIRS=[
 	os.path.expanduser("~/storage/music"),
 	os.path.expanduser("~/storage/audio")
-] 
+]
+
 MUSIC_EXTENSIONS= {
 	'.mp3',
 	'.flac',
@@ -25,13 +26,14 @@ def load_music_config():
             "music_mode": "sequential", 
             "music_stop_on_close": False
         }
+
 def save_music_config(cfg):
     try:
         with open(MUSIC_CONFIG_PATH, 'w') as f:
             json.dump(cfg, f, indent=2)
     except Exception:
         pass
-        
+
 def scan_music(dirs):
     songs, seen = [], set()
     for d in dirs:
@@ -46,7 +48,6 @@ def scan_music(dirs):
             pass
     return songs
 
-
 def mp_run(*args):
     try:
         r = subprocess.run(['termux-media-player', *args],
@@ -54,7 +55,6 @@ def mp_run(*args):
         return r.stdout.strip()
     except Exception:
         return ""
-
 
 def mp_info():
     out = mp_run('info')
@@ -73,7 +73,7 @@ def mp_info():
                 result['position'] = to_sec(times[0])
                 result['duration'] = to_sec(times[1])
     return result
-    
+
 MUSIC_PLAYER_SETTING_CSS="""
  SettingsScreen {
 	background: #0a0a0f;

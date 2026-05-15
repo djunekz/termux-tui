@@ -6,9 +6,10 @@ from textual import work
 import subprocess, os, re, threading, shutil
 
 from utils.apps.app_utils.ytmp3_utils import *
+from utils.apps.app_utils.music_player_utils import mp_run, mp_info
 from utils.helpers import to_mmss, load_config
 
-#  PLAYLIST SCREEN 
+#  PLAYLIST SCREEN
 class YTmp3PlaylistScreen(Screen):
 
     CSS = YTMP3_PLAYLIST_CSS
@@ -16,7 +17,7 @@ class YTmp3PlaylistScreen(Screen):
     def __init__(self, config, on_open):
         super().__init__()
         self._config  = config
-        self._on_open = on_open  # callback(playlist_name, tracks)
+        self._on_open = on_open
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="pl-header"):
@@ -27,10 +28,10 @@ class YTmp3PlaylistScreen(Screen):
             yield Button("+ Create", id="pl-create")
         with VerticalScroll(id="pl-scroll"):
             self._render_list()
-    
+
     def on_mount(self):
         self.app.set_theme(load_config().get("theme", "jarvis"))
-    
+
     def _render_list(self):
         try:
             scroll = self.query_one("#pl-scroll", VerticalScroll)
@@ -93,10 +94,8 @@ class YTmp3PlaylistScreen(Screen):
                 pass
 
 
-#  MAIN YT SCREEN 
 
-#  YT SETTINGS SCREEN 
-
+#  YT SETTINGS SCREEN
 class YTSettingsScreen(Screen):
 
     CSS = YTMP3_SETTINGS_CSS
@@ -162,13 +161,10 @@ class YTSettingsScreen(Screen):
             self.query_one("#yts-cfg-path",  Input).value = YT_CONFIG_PATH
 
 
-#  MAIN YT SCREEN 
-
+#  MAIN YT SCREEN
 class YTmp3Screen(Screen):
 
     CSS = YTMP3_CSS
-
-    #  compose 
 
     def __init__(self):
         super().__init__()
@@ -189,8 +185,6 @@ class YTmp3Screen(Screen):
         self._radio_queue     = []
         self._radio_fetched   = False
 
-    #  config-aware temp paths 
-
     @property
     def _temp_curr(self):
         td = self._config.get('temp_dir', TEMP_DIR)
@@ -204,8 +198,6 @@ class YTmp3Screen(Screen):
     @property
     def _temp_prev(self):
         return os.path.join(self._config.get('temp_dir', TEMP_DIR), 'prev.mp3')
-
-    #  compose 
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="yt-header"):
@@ -222,7 +214,7 @@ class YTmp3Screen(Screen):
 
         with Vertical(id="yt-nowplaying"):
             yield Static("Nothing playing", id="yt-np-title")
-            yield Static("⏹  STOPPED",     id="yt-np-status")
+            yield Static("■ STOPPED",     id="yt-np-status")
             with Horizontal(id="yt-np-progress-row"):
                 yield Static("0:00",   id="yt-np-pos")
                 yield Static("░" * 20, id="yt-np-bar")
@@ -246,8 +238,6 @@ class YTmp3Screen(Screen):
             self.query_one("#disclaimer-box", Vertical).styles.display = "block"
             self.query_one("#disclaimer-box", Vertical).refresh()
         self.set_interval(1, self.tick)
-
-    #  tick 
 
     @work(thread=True)
     def tick(self):
@@ -283,16 +273,13 @@ class YTmp3Screen(Screen):
             )
 
         self.app.call_from_thread(update)
-        
-        # auto advance (in worker thread)
+
         if self._is_playing and self._dur_sec > 0 \
                 and self._pos_sec >= self._dur_sec:
             self._pos_sec    = 0
             self._dur_sec    = 0
             self._is_playing = False
             self._advance()
-
-    #  search 
 
     @work(thread=True)
     def do_search(self, query, reset=False):
@@ -358,17 +345,13 @@ class YTmp3Screen(Screen):
             classes="yt-load-more-btn"
         ))
 
-    #  playback 
-
     def _play_queue(self, tracks, start_idx=0):
-        """Set queue and play from start_idx."""
         self._queue       = tracks
         self._queue_idx   = start_idx
         self._play_track(tracks[start_idx])
 
     @work(thread=True)
     def _play_track(self, track):
-        """Download and play a track. Also pre-fetch next and prev."""
         self.app.call_from_thread(
             self.query_one("#yt-np-title",  Static).update,
             f"⏳ Loading: {track['title'][:40]}..."
@@ -378,27 +361,45 @@ class YTmp3Screen(Screen):
             "⬇  DOWNLOADING..."
         )
 
-        # promote current → prev so ⏮ plays it without re-downloading
         if os.path.exists(self._temp_curr):
             shutil.copy2(self._temp_curr, self._temp_prev)
 
-        # download current
         ok = yt_download_to_file(track['url'], self._temp_curr)
         if not ok:
+            self.app.call_from_thread(
+                self.query_one("#yt-np-status", Static).update,
+                "⏳  Trying stream fallback..."
+            )
+            stream_url = yt_get_audio_url(track['url'])
+            if stream_url:
+                mp_run('play', stream_url)
+                self._is_playing  = True
+                self._pos_sec     = 0
+                self._dur_sec     = 0
+                self._poll_counter = 0
+                self.app.call_from_thread(
+                    self.query_one("#yt-np-title", Static).update,
+                    track['title']
+                )
+                self.app.call_from_thread(
+                    self.query_one("#yt-np-status", Static).update,
+                    "▶  PLAYING (stream)"
+                )
+                def set_pause_fb():
+                    self.query_one("#yt-playpause", Button).label = "■"
+                self.app.call_from_thread(set_pause_fb)
+                return
             self.app.call_from_thread(
                 self.query_one("#yt-np-status", Static).update,
                 "✗  Download failed"
             )
             return
 
-        # play it
         mp_run('play', self._temp_curr)
         self._is_playing  = True
         self._pos_sec     = 0
         self._dur_sec     = 0
         self._poll_counter = 0
-
-        # fetch YouTube algo radio in background
         self._radio_queue   = []
         self._radio_fetched = False
         threading.Thread(
@@ -419,11 +420,8 @@ class YTmp3Screen(Screen):
             self.query_one("#yt-playpause", Button).label = "⏸"
         self.app.call_from_thread(set_pause)
 
-        
-
     @work(thread=True)
     def _play_from_prefetch(self, temp_path, track, save_prev=True):
-        """Play from pre-fetched temp file. Falls back to fresh download."""
         if os.path.exists(temp_path):
             if save_prev and os.path.exists(self._temp_curr):
                 shutil.copy2(self._temp_curr, self._temp_prev)
@@ -439,19 +437,17 @@ class YTmp3Screen(Screen):
                 self.query_one("#yt-playpause", Button).label = "⏸"
             self.app.call_from_thread(update)
         else:
-            # fallback: download fresh
             self._play_track(track)
 
     def _advance(self):
         if self._radio_fetched and self._radio_queue:
-            # use YouTube's algo — pop next from radio queue
+
             next_track = self._radio_queue.pop(0)
-            # inject into queue so prev works
+
             self._queue.insert(self._queue_idx + 1, next_track)
             self._queue_idx += 1
             self._play_from_prefetch(self._temp_next, next_track)
         elif self._queue:
-            # fallback to search list
             self._queue_idx = (self._queue_idx + 1) % len(self._queue)
             self._play_from_prefetch(self._temp_next, self._queue[self._queue_idx])
 
@@ -463,8 +459,6 @@ class YTmp3Screen(Screen):
 
     def _go_next(self):
         self._advance()
-
-    #  download to library 
 
     @work(thread=True)
     def download_track(self, track):
@@ -483,19 +477,13 @@ class YTmp3Screen(Screen):
             self.query_one("#yt-np-status", Static).update, msg
         )
 
-    #  add to playlist picker 
-
     def _show_playlist_picker(self, track):
-        """Show a quick picker to add track to a playlist."""
         playlists = self._config.get("playlists", {})
         if not playlists:
-            # auto-create default
             self._config.setdefault("playlists", {})["Favorites"] = []
             save_yt_config(self._config)
             playlists = self._config["playlists"]
 
-        # just add to first playlist for simplicity if only one
-        # otherwise push playlist screen
         def on_open(name, tracks):
             lst = self._config["playlists"].setdefault(name, [])
             if not any(t.get('id') == track.get('id') for t in lst):
@@ -504,21 +492,16 @@ class YTmp3Screen(Screen):
 
         self.app.push_screen(YTmp3PlaylistScreen(self._config, on_open))
 
-    
     def _fetch_radio_bg(self, video_id):
-        """Background: fetch YouTube Radio mix and store as algo queue."""
         tracks = yt_fetch_radio(video_id, limit=25)
         if tracks:
             self._radio_queue   = tracks
             self._radio_fetched = True
-            # pre-fetch first radio track
             threading.Thread(
                 target=yt_download_to_file,
                 args=(tracks[0]['url'], self._temp_next),
                 daemon=True
             ).start()
-
-    #  button handler 
 
     def on_button_pressed(self, event: Button.Pressed):
         bid = str(event.button.id)
@@ -584,7 +567,6 @@ class YTmp3Screen(Screen):
             real_i = int(bid.split("-")[-1])
             if 0 <= real_i < len(self._search_results):
                 self._playlist_mode = False
-                # queue = all search results, start at clicked
                 self._play_queue(self._search_results, real_i)
 
         elif bid.startswith("ytdl-"):
