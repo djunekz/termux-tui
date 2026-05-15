@@ -3,6 +3,36 @@
 All notable changes to Termux-TUI will be documented here.
 
 ---
+
+## [Unreleased]
+
+### Fixed
+
+**`utils/apps/ytmp3.py`**
+- `mp_run` and `mp_info` were used throughout the file (play/pause, stop, status polling) but never imported — `ytmp3.py` only imported from `ytmp3_utils`, while both functions live in `music_player_utils`. Added explicit `from utils.apps.app_utils.music_player_utils import mp_run, mp_info`.
+- `_play_track` showed `✗ Download failed` with no recovery when yt-dlp couldn't produce an mp3 (e.g. ffmpeg missing or slow connection). Added a stream fallback: if the download fails, the track's direct audio URL is fetched via `yt_get_audio_url` and passed straight to `termux-media-player`, showing `▶ PLAYING (stream)` instead of a dead error.
+
+**`utils/apps/app_utils/ytmp3_utils.py`**
+- `yt_download_to_file` returned `True` based on yt-dlp's exit code alone. If ffmpeg conversion failed silently (ffmpeg not installed, codec error, etc.), yt-dlp could exit 0 without ever writing the `.mp3` file — causing `termux-media-player` to receive a non-existent path and `_play_track` to show `Download failed` even though yt-dlp itself succeeded. Added an explicit check: `os.path.isfile(output_path) and os.path.getsize(output_path) > 0`.
+
+**`utils/constants.py`**
+- `from utils import *` caused a circular import (constants is part of the `utils` package, so it was importing itself) — changed to `from utils import VERSION`
+- CSS `#app-github` had mixed tab/space indentation and a stray leading space in `border: tall` — normalized to consistent tabs
+
+**`utils/apps/app_utils/file_manager_utils.py`**
+- `fmt_size` was missing from this module; `file_manager.py` imports everything via wildcard (`from file_manager_utils import *`) and then calls `fmt_size()` directly — this caused a `NameError` at runtime whenever the file browser was used. Added `fmt_size` definition to this module.
+
+**`utils/apps/app_utils/dialer_utils.py`**
+- `call_number()` passed a list to `subprocess.run()` with `shell=True` — on Linux, when `shell=True` is set the list is silently ignored and the command is never executed. Removed `shell=True` so the list is used correctly.
+- `run_cmd()` returned the string `"[]"` on exception, which caused callers to silently receive an empty list instead of hitting their `except` branch — changed fallback to `""` so `json.loads` raises properly and callers return their explicit empty defaults.
+
+**`main.py`**
+- Removed unused class variables `_net_rx_prev` and `_net_tx_prev` — they were declared on `TermuxDashboard` but never read or written anywhere in the codebase.
+
+**`__main__.py`**
+- `import main` was fragile when the app is launched as a module with `python -m` from outside the project directory, because `main` would not be on `sys.path` — replaced with `runpy.run_path` using an explicit path relative to `__file__`.
+
+---
 ## [2.7.3] - current
 
 ### Added
