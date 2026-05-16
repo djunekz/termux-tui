@@ -4,11 +4,11 @@ def run_cmd(*args, timeout=10):
         r = subprocess.run(list(args), capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()
     except Exception:
-        return "[]"
+        return ""
 
 def call_number(number):
     try:
-        subprocess.run(['termux-telephony-call', number], shell=True)
+        subprocess.run(['termux-telephony-call', number], capture_output=True)
     except Exception:
         pass
 

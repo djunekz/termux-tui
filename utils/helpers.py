@@ -87,7 +87,6 @@ def fmt_size(n):
         n /= 1024
     return f"{n:.1f}TB"
 
-   
 SEPARATOR = ("__SEP__", "")
 
 def flatten_json(data, prefix=""):
@@ -100,13 +99,12 @@ def flatten_json(data, prefix=""):
     elif isinstance(data, list):
         for i, item in enumerate(data):
             if i > 0:
-                out.append(SEPARATOR)   # separator between items
+                out.append(SEPARATOR)
             key = f"{prefix}[{i}]"
             if isinstance(item, (dict, list)): out.extend(flatten_json(item, key))
             else: out.append((key, str(item)))
     return out
 
-        
 def load_config():
     try:
         with open(CONFIG_PATH) as f:
@@ -116,7 +114,6 @@ def load_config():
             "theme": "jarvis"
             }
 
-
 def save_config(cfg):
     try:
         with open(CONFIG_PATH, 'w') as f:
@@ -124,10 +121,6 @@ def save_config(cfg):
     except Exception:
         pass
 
-
-
-    
 def to_mmss(sec):
     sec = max(0, int(sec))
     return f"{sec // 60}:{sec % 60:02d}"
-    

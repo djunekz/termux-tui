@@ -72,7 +72,6 @@ class DialerScreen(Screen):
         self.app.set_theme(self._config.get("theme", "jarvis"))
 
     # TAB SWITCHING
-
     def _switch_tab(self, tab: str):
         self._active_tab = tab
         for t in ["dialer", "logs", "contacts"]:
@@ -87,7 +86,6 @@ class DialerScreen(Screen):
                     panel.styles.display = "none"
             except Exception:
                 pass
-        # lazy load
         if tab == "logs" and self._log_offset == 0:
             self._log_offset = 0
             self.load_logs(reset=True)
@@ -95,7 +93,6 @@ class DialerScreen(Screen):
             self.load_contacts()
 
     # NUMPAD INPUT
-
     def _press_key(self, char: str):
         self._typed += char
         self.query_one("#dial-number", Static).update(self._typed)
@@ -119,7 +116,6 @@ class DialerScreen(Screen):
                 btn.styles.display = "none"
 
     # CONTACTS
-
     @work(thread=True)
     def load_contacts(self):
         contacts = fetch_contacts()
@@ -140,10 +136,10 @@ class DialerScreen(Screen):
             number = c.get('number', '')
 
             row  = Horizontal(classes="contact-row")
-            scroll.mount(row)                                    # mount row first
+            scroll.mount(row)
             info = Vertical(classes="contact-info")
-            row.mount(info)                                      # then info into row
-            info.mount(Static(name, classes="contact-name"))  # then statics into info
+            row.mount(info)
+            info.mount(Static(name, classes="contact-name"))
             info.mount(Static(number, classes="contact-num"))
             btn = Button("📞", id=f"ccall-{gen}-{i}", classes="contact-call-btn")
             row.mount(btn)
@@ -160,13 +156,11 @@ class DialerScreen(Screen):
         self._render_contacts(filtered)
 
     # CALL LOG
-
     @work(thread=True)
     def load_logs(self, reset=False):
         if reset:
             self._log_offset = 0
 
-        # show loading on button before fetch
         def show_loading():
             for btn in self.query(".logs-load-more-btn"):
                 btn.label = "⏳ Loading..."
@@ -204,9 +198,9 @@ class DialerScreen(Screen):
             dur    = log.get('duration', '')
 
             row  = Horizontal(classes="log-row")
-            scroll.mount(row)                                   # mount row first
+            scroll.mount(row)
             info = Vertical(classes="log-info")
-            row.mount(info)                                     # then info into row
+            row.mount(info)
             info.mount(Static(f"{icon}  {name}", classes="log-name"))
             info.mount(Static(f"{number}  ·  {date}  ·  {dur}", classes="log-meta"))
             btn = Button("📞", id=f"lcall-{gen}-{i}", classes="log-call-btn")
@@ -216,7 +210,6 @@ class DialerScreen(Screen):
         scroll.mount(Button("⬇ Load More", id=f"logs-load-more-{self._log_gen}", classes="logs-load-more-btn"))
 
     # BUTTON HANDLER
-
     def on_button_pressed(self, event: Button.Pressed):
         bid = str(event.button.id)
 
@@ -224,7 +217,7 @@ class DialerScreen(Screen):
             self.dismiss()
 
         elif bid in ("tab-dialer", "tab-logs", "tab-contacts"):
-            self._switch_tab(bid[4:])  # strip "tab-"
+            self._switch_tab(bid[4:])
 
         elif bid.startswith("key-"):
             key_map = {
@@ -252,15 +245,12 @@ class DialerScreen(Screen):
             self.load_logs(reset=False)
 
         elif bid.startswith("lcall-") or bid.startswith("ccall-"):
-            # find the number from the parent row
             try:
                 number = clean_number(str(event.button.parent.parent._call_number))
                 if number:
                     call_number(str(number))
             except Exception:
                 pass
-        
+
         elif bid == "try-again-btn":
             self.load_contacts()
-
-

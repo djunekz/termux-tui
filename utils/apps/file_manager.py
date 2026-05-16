@@ -146,4 +146,3 @@ class FileBrowserScreen(Screen):
         elif os.path.isfile(target):
             self.open_file(target)
         event.input.clear()
-        

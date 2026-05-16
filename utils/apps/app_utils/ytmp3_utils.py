@@ -9,7 +9,6 @@ TEMP_PREV=os.path.join(TEMP_DIR, "prev.mp3")
 DEFAULT_YT_DOWNLOAD_DIR=os.path.expanduser("~/YouTube")
 
 def load_yt_config():
-    """Load YouTube music configuration from file."""
     try:
         with open(YT_CONFIG_PATH) as f:
             return json.load(f)
@@ -21,7 +20,6 @@ def load_yt_config():
 
 
 def save_yt_config(cfg):
-    """Save YouTube music configuration to file."""
     try:
         with open(YT_CONFIG_PATH, 'w') as f:
             json.dump(cfg, f, indent=2)
@@ -30,7 +28,6 @@ def save_yt_config(cfg):
 
 
 def yt_search(query, limit=10, offset=0):
-    """Search YouTube using yt-dlp, return list of track dicts."""
     search_query = f"ytsearch{limit + offset}:{query}"
     try:
         r = subprocess.run([
@@ -58,7 +55,6 @@ def yt_search(query, limit=10, offset=0):
 
 
 def yt_get_audio_url(yt_url):
-    """Get direct audio stream URL from YouTube (no download needed for streaming)."""
     try:
         r = subprocess.run([
             'yt-dlp', '-f', 'bestaudio[ext=m4a]/bestaudio/best',
@@ -70,7 +66,6 @@ def yt_get_audio_url(yt_url):
 
 
 def yt_download_to_file(yt_url, output_path):
-    """Download best audio as mp3 to output_path. Returns True on success."""
     try:
         base = output_path.replace('.mp3', '')
         r = subprocess.run([
@@ -82,16 +77,11 @@ def yt_download_to_file(yt_url, output_path):
             '-o', base + '.%(ext)s',
             yt_url
         ], capture_output=True, text=True, timeout=120)
-        return r.returncode == 0
+        return r.returncode == 0 and os.path.isfile(output_path) and os.path.getsize(output_path) > 0
     except Exception:
         return False
 
 def yt_fetch_radio(video_id, limit=25):
-    """
-    Fetch YouTube's algorithmic Radio mix for a video.
-    URL format https://youtube.com/watch?v=ID&list=RDID is YouTube's
-    own recommendation engine — same algo as Watch Next autoplay.
-    """
     radio_url = f"https://www.youtube.com/watch?v={video_id}&list=RD{video_id}"
     try:
         r = subprocess.run([
@@ -107,7 +97,7 @@ def yt_fetch_radio(video_id, limit=25):
                 data   = json.loads(line)
                 vid_id = data.get('id', '')
                 if not vid_id or vid_id == video_id:
-                    continue   # skip seed track
+                    continue
                 results.append({
                     'id':       vid_id,
                     'title':    data.get('title', 'Unknown'),
@@ -782,8 +772,6 @@ YTMP3_PLAYLIST_CSS="""
 	background: red;
 	color: #000000;
 }
-
-
 
 /* DARK theme */
 PlaylistScreen.theme-dark {
